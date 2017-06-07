@@ -1,0 +1,729 @@
+<meta charset="utf-8" />
+<title></title>
+<!-- NRC clours dark grey #3c3c3c; light blue #eaf7fb; --><!-- ********************************************************* CSS and INCLUDES - THESE DEFINE THE LAYOUT OF THE FORM ******************************************************************** -->
+<link href="../dhis-web-commons/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="../dhis-web-commons/font-awesome/css/font-awesome.min.css?_rev=21841" rel="stylesheet" type="text/css" />
+<link href="../favicon.ico" rel="shortcut icon" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/bootstrap-table.css" /><script type="text/javascript" src="../dhis-web-commons/bootstrap/js/bootstrap.min.js">
+</script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/bootstrap-table.min.js">
+</script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/extensions/toolbar/bootstrap-table-toolbar.min.js"></script>
+<style type="text/css">.nrcsubsection /* spacer inbetween tables */
+{
+    background-color: #fff; /* white */
+    height: 5px;
+}
+
+input.entryfield {
+    width: 70px;
+    height: 18px;
+    padding: 2px;
+}
+input.dataelementtotal
+{
+    width: 70px;
+    height: 16px;
+    padding: 2px;
+}
+input.indicator
+{
+    width: 70px;
+    height: 18px;
+    padding: 2px;
+}
+tr:hover {background-color: #e5e5e5}
+
+th {
+    border-style: none !important;
+}
+td {
+    padding: 2px !important;
+    height: 16px;
+    text-align: center;
+    border-style: none !important;
+}
+
+td.nrcindicatorName {
+    text-align: left;
+}
+
+td.lastinrow {
+    background-color: #eee;
+    text-align: center;
+}
+th.nrcinfoheader {
+    text-align: left;
+    border-bottom-style: hidden;
+    border-left-style: hidden;
+    border-top-style: hidden;
+    width: 100%;
+    white-space: nowrap;
+    background-color: #fff;
+    padding: 2px !important;
+
+}
+th.nrcdataheader{
+    text-align: center;
+    border-bottom: 1px solid #ddd !important;
+    background-color: #eaf7fb;
+    white-space: nowrap;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+th.nrctotalheader {
+    text-align: center;
+    border-bottom: 1px solid #ddd !important;
+    background-color: #eee;
+    white-space: nowrap;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+.panel {
+    margin-bottom: 7px;
+}
+
+.panel-body {
+    padding-top: 0;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-bottom: 4px;
+}
+
+.panel-default > .panel-heading {
+    background-color: #3c3c3c;
+    border-color: #3c3c3c;
+    padding: 7px;
+    margin-bottom: 5px;
+    cursor: move;
+}
+a.nrc-panel-title {
+
+    color: white;
+    cursor: pointer;
+}
+
+/* CSS Method for adding Font Awesome Chevron Icons */
+
+.accordion-toggle:after {
+    /* symbol for "opening" panels */
+    font-family:'FontAwesome';
+    content:"\f077";
+    float: right;
+    color: white !important;
+}
+.panel-heading.collapsed .accordion-toggle:after {
+    /* symbol for "collapsed" panels */
+    content:"\f078";
+}
+</style>
+<!-- ***********************************************************JS Functions******************************************************************** --><script>
+
+    $(document).ready(function(){
+
+        //could change this to a bootstrap popover potentially and have the data in a hidden field - these would be specific notes on completion
+        // could have a button to put in the notes??
+        // could also potentially have checkboxes in each row and a button to hide these (or the sections drop down to have subsections)
+
+        var panelList = $('#accordion');
+        var options = [];
+
+        $('[data-toggle="tooltip"]').tooltip();
+        $(".panel-heading").addClass("collapsed");
+
+        //HANDLER FOR SEARCH FIELD
+        $('#filter').keyup(function () {
+
+            var rex = new RegExp($(this).val(), 'i');
+            $('.searchable tr').hide();
+            $('.searchable tr').filter(function () {
+                return rex.test($(this).text());
+            }).show();
+        });
+
+        panelList.sortable({
+            // Only make the .panel-heading child elements support dragging.
+            // Omit this to make then entire <li>...</li> draggable.
+            //handle: '.panel-heading',
+            update: function() {
+                $('.panel', panelList).each(function(index, elem) {
+                    var $listItem = $(elem),
+                            newIndex = $listItem.index();
+
+                    // Persist the new indices.
+                });
+            }
+        });
+
+        $('.dropdown-menu a').on('click', function (event) {
+
+            var $target = $(event.currentTarget),
+                    val = $target.attr('data-value'),
+                    $inp = $target.find('input'),
+                    idx;
+
+            if ((idx = options.indexOf(val)) > -1) {
+                options.splice(idx, 1);
+                setTimeout(function () { $inp.prop('checked', false) }, 0);
+            } else {
+                options.push(val);
+                setTimeout(function () { $inp.prop('checked', true) }, 0);
+            }
+
+            $(event.target).blur();
+            console.log(options);
+            showOptions(options);
+            // $('#mylist').hide();
+            return false;
+
+        });
+
+        function showOptions(options) {
+            // $('#mylist li').hide();
+            //console.log("in my function")
+            //console.log(options.length);
+
+            $("#accordion li").each(function () {
+                var liText = $(this).attr('id');
+                $(this).hide();
+                //console.log("liText is " + liText)
+                for (counter = 0; counter < options.length; counter++) {
+                    //console.log(options[counter]);
+                    if (liText == options[counter]) {
+                        $(this).show();
+                        console.log("found");
+                    }
+                }
+            });
+        };
+    });
+
+
+</script><!-- *********************************************************END OF CSS, INCLUDES and SCRIPTS******************************************************************** -->
+<div class="commenetSpacer hidden">&nbsp;</div>
+<!-- *********************************************************Title******************************************************************** -->
+
+<div class="commenetSpacer hidden">&nbsp;</div>
+
+<div class="input-group col-xs-6">
+    <div class="input-group"><span class="input-group-addon">Filter</span> <input class="form-control" id="filter" type="text" />
+        <div class="input-group-btn"><button class="btn btn-default dropdown-toggle" data-toggle="dropdown" type="button">show/hide sections</button>
+
+            <ul class="dropdown-menu pull-right">
+                <li><a class="small" data-value="EDUCATIONEnrollmentTraining" href="#" tabindex="-1"><input type="checkbox" />Enrolment, Training and Support</a></li>
+                <li><a class="small" data-value="EDUCATIONNfi" href="#" tabindex="-1"><input type="checkbox" />NFIs</a></li>
+                <li><a class="small" data-value="EDUCATIONCash" href="#" tabindex="-1"><input type="checkbox" />Cash and Vouchers</a></li>
+            </ul>
+            <!-- /btn-group --></div>
+        <!-- /input-group --></div>
+    <!-- /.col-lg-6 --></div>
+
+<h1 style="text-align: right;"><strong><span style="font-family:trebuchet ms,helvetica,sans-serif;">Education Mandatory</span></strong>&nbsp;</h1>
+<!-- *********************************************************END OF Title******************************************************************** -->
+
+<div class="commenetSpacer hidden">&nbsp;</div>
+
+<div class="commenetSpacer hidden">&nbsp;</div>
+
+<div class="commenetSpacer hidden">&nbsp;</div>
+
+<div class="commenetSpacer hidden">&nbsp;</div>
+
+<div class="commenetSpacer hidden">&nbsp;</div>
+
+<ul class="list-unstyled" id="accordion"><!-- ***********************************************************LIST OF COLLAPSABLE PANELS GOES HERE.******************************************************************** --><!-- ***********************************************************Section Start******************************************************************** -->
+    <li class="panel panel-default" id="EDUCATIONEnrollmentTraining">
+        <div class="panel-heading collapsed" data-target="#education-enrollTrainng" data-toggle="collapse">
+            <h5 class="panel-title accordion-toggle"><a class="nrc-panel-title">Enrolment, Training and Support</a></h5>
+        </div>
+
+        <div class="panel-collapse collapse in" id="education-enrollTrainng">
+            <div class="panel-body"><!-- ***********************************************************Tables go here************ -->
+                <div class="nrcsubsection">&nbsp;</div>
+                <!-- This is a spacer for when there are multiple tables in a section. Can be deleted if only one table in the section -->
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="nrcinfoheader">Enrollment</th>
+                        <th class="nrcdataheader" colspan="2">IDPs</th>
+                        <th class="nrcdataheader" colspan="2" scope="col">Refugees</th>
+                        <th class="nrcdataheader" colspan="2" scope="col">Host Community</th>
+                        <th class="nrcdataheader" colspan="2" scope="col">Other</th>
+                        <th class="nrctotalheader" colspan="1" scope="col">Total</th>
+                    </tr>
+                    <tr>
+                        <th class="nrcinfoheader">&nbsp;</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrctotalheader">&nbsp;</th>
+                    </tr>
+                    </thead>
+                    <tbody class="searchable">
+                    <tr>
+                        <td class="nrcindicatorName"># of learners enrolled YEP (GL-E1/Y)</td>
+                        <td><input id="z9UmScdI2ua-Jsj0zseyZRy-val" title="" value="" /></td>
+                        <td><input id="z9UmScdI2ua-TSItPcR5Co0-val" title="" value="" /></td>
+                        <td><input id="z9UmScdI2ua-LrwymE2so9E-val" title="" value="" /></td>
+                        <td><input id="z9UmScdI2ua-fgK1KOTsYTX-val" title="" value="" /></td>
+                        <td><input id="z9UmScdI2ua-LtjBY2tHrCQ-val" title="" value="" /></td>
+                        <td><input id="z9UmScdI2ua-n4G7V7Ij9M8-val" title="" value="" /></td>
+                        <td><input id="z9UmScdI2ua-mDkp8daNEq9-val" title="" value="" /></td>
+                        <td><input id="z9UmScdI2ua-DUVdAs0fh3D-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="z9UmScdI2ua" id="totalz9UmScdI2ua" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of learners enrolled Accelerated Learning (GL-E1/A)</td>
+                        <td><input id="GFd19TMOHqT-Jsj0zseyZRy-val" title="" value="" /></td>
+                        <td><input id="GFd19TMOHqT-TSItPcR5Co0-val" title="" value="" /></td>
+                        <td><input id="GFd19TMOHqT-LrwymE2so9E-val" title="" value="" /></td>
+                        <td><input id="GFd19TMOHqT-fgK1KOTsYTX-val" title="" value="" /></td>
+                        <td><input id="GFd19TMOHqT-LtjBY2tHrCQ-val" title="" value="" /></td>
+                        <td><input id="GFd19TMOHqT-n4G7V7Ij9M8-val" title="" value="" /></td>
+                        <td><input id="GFd19TMOHqT-mDkp8daNEq9-val" title="" value="" /></td>
+                        <td><input id="GFd19TMOHqT-DUVdAs0fh3D-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="GFd19TMOHqT" id="totalGFd19TMOHqT" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of learners enrolled EiE (GL-E1/E)</td>
+                        <td><input id="yB0sFkRnDIK-Jsj0zseyZRy-val" title="" value="" /></td>
+                        <td><input id="yB0sFkRnDIK-TSItPcR5Co0-val" title="" value="" /></td>
+                        <td><input id="yB0sFkRnDIK-LrwymE2so9E-val" title="" value="" /></td>
+                        <td><input id="yB0sFkRnDIK-fgK1KOTsYTX-val" title="" value="" /></td>
+                        <td><input id="yB0sFkRnDIK-LtjBY2tHrCQ-val" title="" value="" /></td>
+                        <td><input id="yB0sFkRnDIK-n4G7V7Ij9M8-val" title="" value="" /></td>
+                        <td><input id="yB0sFkRnDIK-mDkp8daNEq9-val" title="" value="" /></td>
+                        <td><input id="yB0sFkRnDIK-DUVdAs0fh3D-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="yB0sFkRnDIK" id="totalyB0sFkRnDIK" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="nrcsubsection">&nbsp;</div>
+                <!-- This is a spacer for when there are multiple tables in a section. Can be deleted if only one table in the section -->
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="nrcinfoheader">Teachers Trained</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrctotalheader">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody class="searchable">
+                    <tr>
+                        <td class="nrcindicatorName"># of teachers trained YEP (GL-E2)</td>
+                        <td><input id="nd6RgErD9pS-ppLwES2u52Q-val" title="" value="" /></td>
+                        <td><input id="nd6RgErD9pS-shbGeNp6nbM-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="nd6RgErD9pS" id="totalnd6RgErD9pS" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of teachers trained AE (GL-E2)</td>
+                        <td><input id="jL6wjLwCNy5-ppLwES2u52Q-val" title="" value="" /></td>
+                        <td><input id="jL6wjLwCNy5-shbGeNp6nbM-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="jL6wjLwCNy5" id="totaljL6wjLwCNy5" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of teachers trained EiE (GL-E2)</td>
+                        <td><input id="BVrBUxlQmyB-ppLwES2u52Q-val" title="" value="" /></td>
+                        <td><input id="BVrBUxlQmyB-shbGeNp6nbM-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="BVrBUxlQmyB" id="totalBVrBUxlQmyB" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of teachers trained Standalone (GL-E2)</td>
+                        <td><input id="kAccb2XCwlW-ppLwES2u52Q-val" title="" value="" /></td>
+                        <td><input id="kAccb2XCwlW-shbGeNp6nbM-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="kAccb2XCwlW" id="totalkAccb2XCwlW" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName">&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td class="lastinrow">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of teacher training packages provided (GL-E4)</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td class="lastinrow"><input id="br6RbzAYh6J-zq28YZ0m2lz-val" title="" value="" /></td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="nrcsubsection">&nbsp;</div>
+                <!-- This is a spacer for when there are multiple tables in a section. Can be deleted if only one table in the section -->
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="nrcinfoheader">Non - Teachers Trained</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrctotalheader">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody class="searchable">
+                    <tr>
+                        <td class="nrcindicatorName"># of non- teachers trained Standalone (GL-E3)</td>
+                        <td><input id="mnd9Irnkz0G-ppLwES2u52Q-val" title="" value="" /></td>
+                        <td><input id="mnd9Irnkz0G-shbGeNp6nbM-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="mnd9Irnkz0G" id="totalmnd9Irnkz0G" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of non- teacher training packages provided (GL-E5)</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td class="lastinrow"><input id="bZ0KHyZ5ZCo-zq28YZ0m2lz-val" title="" value="" /></td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="nrcsubsection">&nbsp;</div>
+                <!-- This is a spacer for when there are multiple tables in a section. Can be deleted if only one table in the section -->
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="nrcinfoheader">Other systems Support</th>
+                        <th class="nrctotalheader">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody class="searchable">
+                    <tr>
+                        <td class="nrcindicatorName"># of strategy guidance documents produced (GL-E6)</td>
+                        <td class="lastinrow"><input id="DgYUzjKgLc4-zq28YZ0m2lz-val" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName">&nbsp;</td>
+                        <td class="lastinrow">&nbsp;</td>
+                    </tr>
+                    </tbody>
+                    <tbody class="searchable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </li>
+    <!-- ***********************************************************End Section******************************************************************** --><!-- ***********************************************************Section Start******************************************************************** -->
+    <li class="panel panel-default" id="EDUCATIONNfi">
+        <div class="panel-heading" data-target="#education-nfi" data-toggle="collapse">
+            <h5 class="panel-title accordion-toggle"><a class="nrc-panel-title">Non-Food Items (Education)</a></h5>
+        </div>
+
+        <div class="panel-collapse collapse in" id="education-nfi">
+            <div class="panel-body"><!-- ***********************************************************Tables go here************ -->
+                <div class="nrcsubsection">&nbsp;</div>
+                <!-- This is a spacer for when there are multiple tables in a section. Can be deleted if only one table in the section -->
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="nrcinfoheader">Individuals Receiving NFIs&nbsp;</th>
+                        <th class="nrcdataheader" colspan="2">IDPs</th>
+                        <th class="nrcdataheader" colspan="2" scope="col">Refugees</th>
+                        <th class="nrcdataheader" colspan="2" scope="col">Host Community</th>
+                        <th class="nrcdataheader" colspan="2" scope="col">Other</th>
+                        <th class="nrctotalheader" colspan="1" scope="col">Total</th>
+                    </tr>
+                    <tr>
+                        <th class="nrcinfoheader">&nbsp;</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrctotalheader">&nbsp;</th>
+                    </tr>
+                    </thead>
+                    <tbody class="searchable">
+                    <tr>
+                        <td class="nrcindicatorName"># of individuals receiving NFI Kits YEP (GL-E71)</td>
+                        <td><input id="Me7cJFbRI99-Jsj0zseyZRy-val" title="" value="" /></td>
+                        <td><input id="Me7cJFbRI99-TSItPcR5Co0-val" title="" value="" /></td>
+                        <td><input id="Me7cJFbRI99-LrwymE2so9E-val" title="" value="" /></td>
+                        <td><input id="Me7cJFbRI99-fgK1KOTsYTX-val" title="" value="" /></td>
+                        <td><input id="Me7cJFbRI99-LtjBY2tHrCQ-val" title="" value="" /></td>
+                        <td><input id="Me7cJFbRI99-n4G7V7Ij9M8-val" title="" value="" /></td>
+                        <td><input id="Me7cJFbRI99-mDkp8daNEq9-val" title="" value="" /></td>
+                        <td><input id="Me7cJFbRI99-DUVdAs0fh3D-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="Me7cJFbRI99" id="totalMe7cJFbRI99" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of individuals receiving NFI Kits AE (GL-E71)</td>
+                        <td><input id="MIb4wvTqFsw-Jsj0zseyZRy-val" title="" value="" /></td>
+                        <td><input id="MIb4wvTqFsw-TSItPcR5Co0-val" title="" value="" /></td>
+                        <td><input id="MIb4wvTqFsw-LrwymE2so9E-val" title="" value="" /></td>
+                        <td><input id="MIb4wvTqFsw-fgK1KOTsYTX-val" title="" value="" /></td>
+                        <td><input id="MIb4wvTqFsw-LtjBY2tHrCQ-val" title="" value="" /></td>
+                        <td><input id="MIb4wvTqFsw-n4G7V7Ij9M8-val" title="" value="" /></td>
+                        <td><input id="MIb4wvTqFsw-mDkp8daNEq9-val" title="" value="" /></td>
+                        <td><input id="MIb4wvTqFsw-DUVdAs0fh3D-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="MIb4wvTqFsw" id="totalMIb4wvTqFsw" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of individuals receiving NFI Kits EiE (GL-E71)</td>
+                        <td><input id="Yf2iiG6GSxM-Jsj0zseyZRy-val" title="" value="" /></td>
+                        <td><input id="Yf2iiG6GSxM-TSItPcR5Co0-val" title="" value="" /></td>
+                        <td><input id="Yf2iiG6GSxM-LrwymE2so9E-val" title="" value="" /></td>
+                        <td><input id="Yf2iiG6GSxM-fgK1KOTsYTX-val" title="" value="" /></td>
+                        <td><input id="Yf2iiG6GSxM-LtjBY2tHrCQ-val" title="" value="" /></td>
+                        <td><input id="Yf2iiG6GSxM-n4G7V7Ij9M8-val" title="" value="" /></td>
+                        <td><input id="Yf2iiG6GSxM-mDkp8daNEq9-val" title="" value="" /></td>
+                        <td><input id="Yf2iiG6GSxM-DUVdAs0fh3D-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="Yf2iiG6GSxM" id="totalYf2iiG6GSxM" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of individuals receiving NFI Kits Other (GL-E71)</td>
+                        <td><input id="t6SG5mmDVXL-Jsj0zseyZRy-val" title="" value="" /></td>
+                        <td><input id="t6SG5mmDVXL-TSItPcR5Co0-val" title="" value="" /></td>
+                        <td><input id="t6SG5mmDVXL-LrwymE2so9E-val" title="" value="" /></td>
+                        <td><input id="t6SG5mmDVXL-fgK1KOTsYTX-val" title="" value="" /></td>
+                        <td><input id="t6SG5mmDVXL-LtjBY2tHrCQ-val" title="" value="" /></td>
+                        <td><input id="t6SG5mmDVXL-n4G7V7Ij9M8-val" title="" value="" /></td>
+                        <td><input id="t6SG5mmDVXL-mDkp8daNEq9-val" title="" value="" /></td>
+                        <td><input id="t6SG5mmDVXL-DUVdAs0fh3D-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="t6SG5mmDVXL" id="totalt6SG5mmDVXL" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="nrcsubsection">&nbsp;</div>
+                <!-- This is a spacer for when there are multiple tables in a section. Can be deleted if only one table in the section -->
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="nrcinfoheader">Education NFI</th>
+                        <th class="nrcdataheader">Teacher</th>
+                        <th class="nrcdataheader">Student</th>
+                        <th class="nrcdataheader">Other</th>
+                        <th class="nrctotalheader">Services</th>
+                    </tr>
+                    </thead>
+                    <tbody class="searchable">
+                    <tr>
+                        <td class="nrcindicatorName"># of kits distributed YEP (GL-E70) &nbsp;</td>
+                        <td><input id="dg0I38H12FM-kJRRp2DnOyH-val" title="" value="" /></td>
+                        <td><input id="dg0I38H12FM-M4okt6DErQ0-val" title="" value="" /></td>
+                        <td><input id="dg0I38H12FM-LIvpabLAYEH-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="dg0I38H12FM" id="totaldg0I38H12FM" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of kits distributed AE(GL-E70)</td>
+                        <td><input id="yQbg9gcfN4b-kJRRp2DnOyH-val" title="" value="" /></td>
+                        <td><input id="yQbg9gcfN4b-M4okt6DErQ0-val" title="" value="" /></td>
+                        <td><input id="yQbg9gcfN4b-LIvpabLAYEH-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="yQbg9gcfN4b" id="totalyQbg9gcfN4b" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of kits distributed EiE (GL-E70)</td>
+                        <td><input id="o1w0U7kJgx0-kJRRp2DnOyH-val" title="" value="" /></td>
+                        <td><input id="o1w0U7kJgx0-M4okt6DErQ0-val" title="" value="" /></td>
+                        <td><input id="o1w0U7kJgx0-LIvpabLAYEH-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="o1w0U7kJgx0" id="totalo1w0U7kJgx0" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of kits distributed Other (GL-E70)</td>
+                        <td><input id="GZZJBpuIaZX-kJRRp2DnOyH-val" title="" value="" /></td>
+                        <td><input id="GZZJBpuIaZX-M4okt6DErQ0-val" title="" value="" /></td>
+                        <td><input id="GZZJBpuIaZX-LIvpabLAYEH-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="GZZJBpuIaZX" id="totalGZZJBpuIaZX" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="nrcsubsection">&nbsp;</div>
+                <!-- This is a spacer for when there are multiple tables in a section. Can be deleted if only one table in the section -->
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="nrcinfoheader">Education NFI</th>
+                        <th class="nrcdataheader">School</th>
+                        <th class="nrcdataheader">Government</th>
+                        <th class="nrcdataheader">Other</th>
+                        <th class="nrctotalheader">Services</th>
+                    </tr>
+                    </thead>
+                    <tbody class="searchable">
+                    <tr>
+                        <td class="nrcindicatorName"># of institutions receiving NFI kits(GL-E73)</td>
+                        <td><input id="mUBFkld2120-mBNYtOLtDTu-val" title="" value="" /></td>
+                        <td><input id="mUBFkld2120-oHTJ1ZjrN7M-val" title="" value="" /></td>
+                        <td><input id="mUBFkld2120-KZI3ERoFd07-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="mUBFkld2120" id="totalmUBFkld2120" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </li>
+    <!-- ***********************************************************End Section******************************************************************** --><!-- ***********************************************************Section Start******************************************************************** -->
+    <li class="panel panel-default" id="EDUCATIONCash">
+        <div class="panel-heading" data-target="#education-cash" data-toggle="collapse">
+            <h5 class="panel-title accordion-toggle"><a class="nrc-panel-title">Cash and Vouchers (Education)</a></h5>
+        </div>
+
+        <div class="panel-collapse collapse in" id="education-cash">
+            <div class="panel-body"><!-- ***********************************************************Tables go here************ -->
+                <div class="nrcsubsection">&nbsp;</div>
+                <!-- This is a spacer for when there are multiple tables in a section. Can be deleted if only one table in the section -->
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="nrcinfoheader">Individuals receiving cash</th>
+                        <th class="nrcdataheader" colspan="2">IDPs</th>
+                        <th class="nrcdataheader" colspan="2" scope="col">Refugees</th>
+                        <th class="nrcdataheader" colspan="2" scope="col">Host Community</th>
+                        <th class="nrcdataheader" colspan="2" scope="col">Other</th>
+                        <th class="nrctotalheader" colspan="1" scope="col">Total</th>
+                    </tr>
+                    <tr>
+                        <th class="nrcinfoheader">&nbsp;</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrcdataheader">Males</th>
+                        <th class="nrcdataheader">Females</th>
+                        <th class="nrctotalheader">&nbsp;</th>
+                    </tr>
+                    </thead>
+                    <tbody class="searchable">
+                    <tr>
+                        <td class="nrcindicatorName"># of individuals recieving conditional cash (GL-E90)&nbsp;</td>
+                        <td><input id="iCdbDzh54gJ-Jsj0zseyZRy-val" title="" value="" /></td>
+                        <td><input id="iCdbDzh54gJ-TSItPcR5Co0-val" title="" value="" /></td>
+                        <td><input id="iCdbDzh54gJ-LrwymE2so9E-val" title="" value="" /></td>
+                        <td><input id="iCdbDzh54gJ-fgK1KOTsYTX-val" title="" value="" /></td>
+                        <td><input id="iCdbDzh54gJ-LtjBY2tHrCQ-val" title="" value="" /></td>
+                        <td><input id="iCdbDzh54gJ-n4G7V7Ij9M8-val" title="" value="" /></td>
+                        <td><input id="iCdbDzh54gJ-mDkp8daNEq9-val" title="" value="" /></td>
+                        <td><input id="iCdbDzh54gJ-DUVdAs0fh3D-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="iCdbDzh54gJ" id="totaliCdbDzh54gJ" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of individuals receiving unconditional cash (GL-E91)</td>
+                        <td><input id="fRfTzBRopp3-Jsj0zseyZRy-val" title="" value="" /></td>
+                        <td><input id="fRfTzBRopp3-TSItPcR5Co0-val" title="" value="" /></td>
+                        <td><input id="fRfTzBRopp3-LrwymE2so9E-val" title="" value="" /></td>
+                        <td><input id="fRfTzBRopp3-fgK1KOTsYTX-val" title="" value="" /></td>
+                        <td><input id="fRfTzBRopp3-LtjBY2tHrCQ-val" title="" value="" /></td>
+                        <td><input id="fRfTzBRopp3-n4G7V7Ij9M8-val" title="" value="" /></td>
+                        <td><input id="fRfTzBRopp3-mDkp8daNEq9-val" title="" value="" /></td>
+                        <td><input id="fRfTzBRopp3-DUVdAs0fh3D-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="fRfTzBRopp3" id="totalfRfTzBRopp3" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of individuals recieving vouchers (GL-E94)</td>
+                        <td><input id="nEVSBenTQle-Jsj0zseyZRy-val" title="" value="" /></td>
+                        <td><input id="nEVSBenTQle-TSItPcR5Co0-val" title="" value="" /></td>
+                        <td><input id="nEVSBenTQle-LrwymE2so9E-val" title="" value="" /></td>
+                        <td><input id="nEVSBenTQle-fgK1KOTsYTX-val" title="" value="" /></td>
+                        <td><input id="nEVSBenTQle-LtjBY2tHrCQ-val" title="" value="" /></td>
+                        <td><input id="nEVSBenTQle-n4G7V7Ij9M8-val" title="" value="" /></td>
+                        <td><input id="nEVSBenTQle-mDkp8daNEq9-val" title="" value="" /></td>
+                        <td><input id="nEVSBenTQle-DUVdAs0fh3D-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="nEVSBenTQle" id="totalnEVSBenTQle" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="nrcsubsection">&nbsp;</div>
+                <!-- This is a spacer for when there are multiple tables in a section. Can be deleted if only one table in the section -->
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="nrcinfoheader">Institutions recieving cash&nbsp;</th>
+                        <th class="nrcdataheader">School</th>
+                        <th class="nrcdataheader">Government</th>
+                        <th class="nrcdataheader">Other</th>
+                        <th class="nrctotalheader">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody class="searchable">
+                    <tr>
+                        <td class="nrcindicatorName"># of institutions receiving conditional cash (GL-E98)</td>
+                        <td><input id="VaUILCV0Ldi-mBNYtOLtDTu-val" title="" value="" /></td>
+                        <td><input id="VaUILCV0Ldi-oHTJ1ZjrN7M-val" title="" value="" /></td>
+                        <td><input id="VaUILCV0Ldi-KZI3ERoFd07-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="VaUILCV0Ldi" id="totalVaUILCV0Ldi" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of institutions receiving conditional cash (GL-E99)</td>
+                        <td><input id="pI0Q6ijziNG-mBNYtOLtDTu-val" title="" value="" /></td>
+                        <td><input id="pI0Q6ijziNG-oHTJ1ZjrN7M-val" title="" value="" /></td>
+                        <td><input id="pI0Q6ijziNG-KZI3ERoFd07-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="pI0Q6ijziNG" id="totalpI0Q6ijziNG" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName"># of institutions receiving vouchers (GL-E100)</td>
+                        <td><input id="JAMCzUMZq83-mBNYtOLtDTu-val" title="" value="" /></td>
+                        <td><input id="JAMCzUMZq83-oHTJ1ZjrN7M-val" title="" value="" /></td>
+                        <td><input id="JAMCzUMZq83-KZI3ERoFd07-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="JAMCzUMZq83" id="totalJAMCzUMZq83" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class="nrcsubsection">&nbsp;</div>
+                <!-- This is a spacer for when there are multiple tables in a section. Can be deleted if only one table in the section -->
+
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="nrcinfoheader">Cash Response Type&nbsp;</th>
+                        <th class="nrcdataheader">YEP</th>
+                        <th class="nrcdataheader">AE</th>
+                        <th class="nrcdataheader">EiE</th>
+                        <th class="nrcdataheader">Sys Support</th>
+                        <th class="nrcdataheader">Standalone</th>
+                        <th class="nrcdataheader">Other</th>
+                        <th class="nrctotalheader">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody class="searchable">
+                    <tr>
+                        <td class="nrcindicatorName">Value of cash distributed in USD (GL-E96)&nbsp;</td>
+                        <td><input id="Kr0nWCz0bIz-ZRoMJ4FB3ZN-val" title="" value="" /></td>
+                        <td><input id="Kr0nWCz0bIz-Cvw7P41DDYh-val" title="" value="" /></td>
+                        <td><input id="Kr0nWCz0bIz-aNOACWTLXdX-val" title="" value="" /></td>
+                        <td><input id="Kr0nWCz0bIz-PlJ8OReg60J-val" title="" value="" /></td>
+                        <td><input id="Kr0nWCz0bIz-G6HD9KhLgm8-val" title="" value="" /></td>
+                        <td><input id="Kr0nWCz0bIz-PMuJkPJClka-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="Kr0nWCz0bIz" id="totalKr0nWCz0bIz" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    <tr>
+                        <td class="nrcindicatorName">Value of vouchers distributed in USD (GL-E97)&nbsp;</td>
+                        <td><input id="vRmtycrvrcm-ZRoMJ4FB3ZN-val" title="" value="" /></td>
+                        <td><input id="vRmtycrvrcm-Cvw7P41DDYh-val" title="" value="" /></td>
+                        <td><input id="vRmtycrvrcm-aNOACWTLXdX-val" title="" value="" /></td>
+                        <td><input id="vRmtycrvrcm-PlJ8OReg60J-val" title="" value="" /></td>
+                        <td><input id="vRmtycrvrcm-G6HD9KhLgm8-val" title="" value="" /></td>
+                        <td><input id="vRmtycrvrcm-PMuJkPJClka-val" title="" value="" /></td>
+                        <td class="lastinrow"><input dataelementid="vRmtycrvrcm" id="totalvRmtycrvrcm" name="total" readonly="readonly" title="" value="" /></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </li>
+    <!-- ***********************************************************End Section******************************************************************** -->
+</ul>

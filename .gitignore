@@ -1,0 +1,9 @@
+node_modules
+dist/
+coverage
+.idea/
+.DS_Store
+npm-debug.log
+src/.DS_Store
+src/app/.DS_Store
+src/app/features/.DS_Store

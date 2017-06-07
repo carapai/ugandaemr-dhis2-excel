@@ -1,0 +1,19 @@
+<div class="modal-body" id="modal-body">
+    <ul class="list-unstyled">
+        <li>Status: {{alert.items.status}}</li>
+        <li>Imported: {{alert.items.importCount.imported}}</li>
+        <li>Updated: {{alert.items.importCount.updated}}</li>
+        <li>Ignored: {{alert.items.importCount.ignored}}</li>
+        <li>Deleted: {{alert.items.importCount.deleted}}</li>
+        <li ng-show="alert.items.conflicts.length > 0">
+            There are {{alert.items.conflicts.length}} conflicts.
+            Some values have been ignored because of these conflicts.
+            Conflicts arise out of wrong value for data element, incorrect period, or when validation rules has been broken
+            <br>
+            The Data Set might also have been locked
+        </li>
+    </ul>
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary btn-sm" type="button" ng-click="alert.ok()">OK</button>
+</div>
