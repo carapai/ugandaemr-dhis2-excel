@@ -18,6 +18,7 @@ export default class HomeController {
         this.restagular = Restangular;
 
         this.elements = [];
+        this.cellsGot = [];
 
         this.selectedDataset = null;
         this.selectedDatasetCategories = null;
@@ -128,93 +129,105 @@ export default class HomeController {
         ];
 
         $scope.$watch(() => this.excel, (newVal) => {
-            if (newVal) {
-                this.wb = xlsx.read(newVal.base64, {
-                    type: 'base64',
-                    WTF: false
-                });
+                if (newVal) {
+                    this.cellsGot = [];
+                    this.wb = xlsx.read(newVal.base64, {
+                        type: 'base64',
+                        WTF: false
+                    });
 
-                let work_sheet = this.wb.Sheets["Main"];
+                    let work_sheet = this.wb.Sheets["Main"];
+                    let properties_work_sheet = this.wb.Sheets["Properties"];
+                    let props_sheet = xlsx.utils.sheet_to_json(properties_work_sheet);
 
-                let unprocessedDataCells = this.wb["Custprops"];
-                let cellsGot = [];
-                let otherCellValues = [];
-                let otherEntryCells = angular.fromJson(unprocessedDataCells["otherEntryCells"]);
-                _.forEach(otherEntryCells, (otherEntryCell) => {
-                    let desired_cell = work_sheet[otherEntryCell.cell];
-                    let desired_value = desired_cell.v;
+                    let datasetString = _.filter(props_sheet, (d) => {
+                        return _.has(d, 'dataSet');
+                    })[0].dataSet;
 
-                    if (otherEntryCell.name === "Periods") {
-                        this.importedPeriod = desired_value;
-                        if (!this.importedPeriod) {
-                            let dt = xlsx.SSF.parse_date_code(desired_value, {
-                                date1904: false
-                            });
-                            this.importedPeriod = dt.m < 10 ? dt.y + '0' + dt.m : dt.y + '' + dt.m;
-                        }
-                    } else if (otherEntryCell.name === "Organizations") {
-                        this.importedOrganisationUnit = desired_value;
-                    } else {
-                        otherCellValues.push(desired_value);
-                    }
-                });
+                    let organizationCell = _.filter(props_sheet, (d) => {
+                        return _.has(d, 'organization');
+                    })[0].organization;
 
-                this.selectedDatasetCategories = otherCellValues.join(",");
-                this.importedDataset = unprocessedDataCells["dataset"].split(',')[1];
-                this.importedDatasetId = unprocessedDataCells["dataset"].split(',')[0];
-                this.dataSetCategoryCombo = unprocessedDataCells["dataSetCategoryCombo"];
+                    let periodCell = _.filter(props_sheet, (d) => {
+                        return _.has(d, 'period');
+                    })[0].period;
 
-                _.forEach(unprocessedDataCells, (dataCell, index) => {
-                    if (index.indexOf("cells") !== -1) {
-                        let cells = angular.fromJson(dataCell);
-                        _.forEach(cells, (cell) => {
-                            cellsGot.push({
-                                cell: cell.cell,
-                                dataElement: cell.dataElement,
-                                categoryOptionCombo: cell.categoryOptionCombo,
-                                cellValue: work_sheet[cell.cell]
-                            });
+                   /* this.dataSetCategoryCombo = _.filter(props_sheet, (d) => {
+                        return _.has(d, 'categoryCombination');
+                    })[0].categoryCombination;*/
+
+                    let datasetCategoryOptionCells = _.filter(props_sheet, (d) => {
+                        return _.has(d, 'category');
+                    });
+
+                    let dataCells = _.filter(props_sheet, (d) => {
+                        return _.has(d, 'entryCell');
+                    });
+
+                    this.importedOrganisationUnit = work_sheet[organizationCell].v;
+                    this.importedPeriod = work_sheet[periodCell].v;
+
+                    let datasetCategoryOptionsValues = _.map(datasetCategoryOptionCells, (datasetCategoryOptionCell) => {
+                        return work_sheet[datasetCategoryOptionCell.category].v;
+                    });
+
+                    if (!this.importedPeriod) {
+                        let dt = xlsx.SSF.parse_date_code(period, {
+                            date1904: false
                         });
+                        this.importedPeriod = dt.m < 10 ? dt.y + '0' + dt.m : dt.y + '' + dt.m;
                     }
-                });
 
-                Data.getOne('organisationUnits', this.importedOrganisationUnit).then((orgUnit) => {
-                    this.realOrganizationUnit = Restangular.stripRestangular(orgUnit);
-                }, (error) => {
-                    let modalInstance = this.uimodal.open({
-                        animation: true,
-                        ariaLabelledBy: 'modal-title',
-                        ariaDescribedBy: 'modal-body',
-                        template: require('./alert-modal.html'),
-                        controller: 'ModalController',
-                        controllerAs: 'alert',
-                        size: 'sm',
-                        backdrop: false,
-                        resolve: {
-                            items: function () {
-                                return "Organization Unit UID Specified In The Excel Not Found, Please Correct It Before You Can Continue";
+                    this.selectedDatasetCategories = datasetCategoryOptionsValues.join(",");
+                    this.importedDataset = datasetString.split(',')[1];
+                    this.importedDatasetId = datasetString.split(',')[0];
+
+                    _.forEach(dataCells, (dataCell) => {
+                        let cells = dataCell.entryCell.split('-');
+                        this.cellsGot = [...this.cellsGot, {
+                            cell: cells[0],
+                            dataElement: cells[1],
+                            categoryOptionCombo: cells[2],
+                            cellValue: work_sheet[cells[0]]
+                        }];
+                    });
+
+                    Data.getOne('organisationUnits', this.importedOrganisationUnit).then((orgUnit) => {
+                        this.realOrganizationUnit = Restangular.stripRestangular(orgUnit);
+                    }, (error) => {
+                        let modalInstance = this.uimodal.open({
+                            animation: true,
+                            ariaLabelledBy: 'modal-title',
+                            ariaDescribedBy: 'modal-body',
+                            template: require('./alert-modal.html'),
+                            controller: 'ModalController',
+                            controllerAs: 'alert',
+                            size: 'sm',
+                            backdrop: false,
+                            resolve: {
+                                items: function () {
+                                    return "Organization Unit UID Specified In The Excel Not Found, Please Correct It Before You Can Continue";
+                                }
                             }
-                        }
+                        });
+                        modalInstance.result.then(() => {
+                            this.cellsGot = []
+                        }, () => {
+                        });
                     });
-                    modalInstance.result.then(() => {
-                        this.cellsGot = []
-                    }, () => {
-                    });
-                });
 
-                this.cellsGot = cellsGot;
-
-                this.data.getOne('dataSets', this.importedDatasetId, {fields: 'dataSetElements[dataElement[id,name,displayName,categoryCombo[id,name,uuid,displayName,categoryOptionCombos[id,name,displayName,categoryCombo[id,name,displayName],categoryOptions[id,name,displayName]],categories[id,name,displayName,categoryCombos[id,name,displayName],categoryOptions[id,name,uuid,displayName]]]]]'}).then((dataSet) => {
-                    let elements = _.map(this.restagular.stripRestangular(dataSet)['dataSetElements'], 'dataElement');
-                    this.dataElementsFound = _.groupBy(elements, 'id');
-                    let categoryOptionCombos = [];
-                    _.forEach(elements, (element) => {
-                        categoryOptionCombos = [...categoryOptionCombos, ...element.categoryCombo.categoryOptionCombos]
+                    this.data.getOne('dataSets', this.importedDatasetId, {fields: 'dataSetElements[dataElement[id,name,displayName,categoryCombo[id,name,uuid,displayName,categoryOptionCombos[id,name,displayName,categoryCombo[id,name,displayName],categoryOptions[id,name,displayName]],categories[id,name,displayName,categoryCombos[id,name,displayName],categoryOptions[id,name,uuid,displayName]]]]]'}).then((dataSet) => {
+                        let elements = _.map(this.restagular.stripRestangular(dataSet)['dataSetElements'], 'dataElement');
+                        this.dataElementsFound = _.groupBy(elements, 'id');
+                        let categoryOptionCombos = [];
+                        _.forEach(elements, (element) => {
+                            categoryOptionCombos = [...categoryOptionCombos, ...element.categoryCombo.categoryOptionCombos]
+                        });
+                        this.categoryOptionCombosFound = _.groupBy(_.uniqBy(categoryOptionCombos, 'id'), 'id');
                     });
-                    this.categoryOptionCombosFound = _.groupBy(_.uniqBy(categoryOptionCombos, 'id'), 'id');
-                });
+                }
             }
-        });
+        );
     }
 
     Workbook() {
@@ -284,7 +297,6 @@ export default class HomeController {
     searchName(list, name) {
         let found = false;
         for (let i = 0; i < list.length; i++) {
-            // if (list[i].name.indexOf(name) >= 0 || (this.similarity(list[i].name, name) * 100) > 10) {
             if (list[i].name.toLowerCase().trim().indexOf(name.toLowerCase().trim()) >= 0) {
                 found = true;
                 break;
@@ -855,21 +867,24 @@ export default class HomeController {
             fill: {fgColor: {rgb: "FFFFAA00"}}
         };
 
-        let wb = {
-            SheetNames: [],
-            Sheets: {},
-            Custprops: {}
-        };
+        let wb = xlsx.utils.book_new();
 
-        /*Custom Properties to written in the excel file*/
-        wb.Custprops = {
-            "dataset": this.selectedDataset.id + "," + this.selectedDataset.displayName,
-            "dataSetCategoryCombo": dataSetCategoryCombo
+        let sh = xlsx.utils.table_to_sheet(this.createdTable,{sheet: "Main"});
+        sh['!protect'] = {
+            password: "password",
+            /* enable formatting rows and columns */
+            formatRows: false,
+            formatColumns: false,
+            formatCells: false,
+            /* disable editing objects and scenarios */
+            objects: true,
+            scenarios: true
         };
-        let sh = xlsx.utils.table_to_sheet(this.createdTable, {sheet: "Sheet JS"});
 
         let dataEntryCells = [];
         let otherEntryCells = [];
+        let organizationCell = '';
+        let periodCell = '';
         _.forEach(sh, (cell, key) => {
             let cellValue = cell.v;
             if (!key.startsWith('!')) {
@@ -878,11 +893,7 @@ export default class HomeController {
                         let foundObject = angular.fromJson(cellValue);
                         if (foundObject.id.endsWith('-val')) {
                             let otherFields = foundObject.id.split("-");
-                            dataEntryCells = [...dataEntryCells, {
-                                "cell": key,
-                                "dataElement": otherFields[0],
-                                "categoryOptionCombo": otherFields[1]
-                            }];
+                            dataEntryCells = [...dataEntryCells, key + '-' + otherFields[0] + '-' + otherFields[1]];
                             cell.v = '';
                             cell.s = this.dataEntryStyling;
                         } else {
@@ -898,17 +909,17 @@ export default class HomeController {
                         }
                         let cellParts = String(cellValue).split("-");
                         if (String(cellValue).endsWith('-Organizations')) {
-                            otherEntryCells = [...otherEntryCells, {name: 'Organizations', cell: key}];
+                            organizationCell = key;
                             cell.v = cellParts[1];
                             cell.s = this.dataEntryStyling;
                         }
                         if (String(cellValue).endsWith('-Periods')) {
-                            otherEntryCells = [...otherEntryCells, {name: 'Periods', cell: key}];
+                            periodCell = key;
                             cell.v = cellParts[1];
                             cell.s = this.dataEntryStyling;
                         }
                         if (String(cellValue).endsWith('-DatasetCategories')) {
-                            otherEntryCells = [...otherEntryCells, {name: cellParts[2], cell: key}];
+                            otherEntryCells = [...otherEntryCells, key];
                             cell.v = cellParts[1];
                             cell.s = this.dataEntryStyling;
                         }
@@ -916,27 +927,30 @@ export default class HomeController {
                 }
             }
         });
-
         /*Sheet Names*/
         let mainSheetName = "Main";
-        let organizations = "Organizations";
-        let periods = "Periods";
-
-        /*Empty Sheets*/
-        let organizationSheet = {};
-        let periodSheet = {};
+        let propSheetName = "Properties";
 
         /*Add Data Cells to Custom Properties*/
-        let arrays = _.chunk(dataEntryCells, 2);
-        _.forEach(arrays, (a, index) => {
-            wb["Custprops"]["cells" + index] = angular.toJson(a);
+        let arrays = _.chunk(dataEntryCells, 1);
+
+        arrays[0][1] = this.selectedDataset.id + "," + this.selectedDataset.displayName;
+        arrays[0][2] = dataSetCategoryCombo;
+        arrays[0][3] = organizationCell;
+        arrays[0][4] = periodCell;
+
+        _.forEach(otherEntryCells, (others, i) => {
+            arrays[i][5] = others;
         });
 
-        wb["Custprops"]["otherEntryCells"] = angular.toJson(otherEntryCells);
+        let props = xlsx.utils.aoa_to_sheet([
+            ["entryCell", 'dataSet', 'categoryCombination', 'organization', 'period', 'category'],
+            ...arrays
+        ]);
 
-        wb.SheetNames.push(mainSheetName);
-
-        wb["Sheets"][mainSheetName] = sh;
+        xlsx.utils.book_append_sheet(wb, sh, mainSheetName);
+        xlsx.utils.book_append_sheet(wb, props, propSheetName);
+        xlsx.utils.book_set_sheet_visibility(wb, "Properties", xlsx.utils.consts.SHEET_HIDDEN);
 
         let wbout = xlsxs.write(wb, {
             bookType: 'xlsx',
@@ -945,6 +959,193 @@ export default class HomeController {
         });
 
         saveAs(new Blob([this.utils.s2ab(wbout)], {type: "application/octet-stream"}), this.selectedDataset.displayName + ".xlsx");
+    }
+
+    download1() {
+        var data = [
+            [1, 2, 3],
+            [true, false, null, "sheetjs"],
+            ["foo", "bar", new Date("2014-02-19T14:30Z"), "0.3"],
+            ["baz", null, "qux", 3.14159],
+            ["hidden"],
+            ["visible"]
+        ];
+
+        var ws_name = "SheetJS";
+
+        var wscols = [
+            {wch: 6}, // "characters"
+            {wpx: 50}, // "pixels"
+            ,
+            {hidden: true} // hide column
+        ];
+
+        /* At 96 PPI, 1 pt = 1 px */
+        var wsrows = [
+            {hpt: 12}, // "points"
+            {hpx: 16}, // "pixels"
+            ,
+            {hpx: 24},
+            {hidden: true}, // hide row
+            {hidden: false}
+        ];
+
+        console.log("Sheet Name: " + ws_name);
+        console.log("Data: ");
+        var i = 0;
+        for (i = 0; i !== data.length; ++i) console.log(data[i]);
+        console.log("Columns :");
+        for (i = 0; i !== wscols.length; ++i) console.log(wscols[i]);
+
+        var wb = xlsx.utils.book_new();
+
+        /* convert an array of arrays in JS to a CSF spreadsheet */
+        var ws = xlsx.utils.aoa_to_sheet(data, {cellDates: true});
+
+        /* TEST: add worksheet to workbook */
+        /*
+         wb.SheetNames.push(ws_name);
+         wb.Sheets[ws_name] = ws;
+         */
+        xlsx.utils.book_append_sheet(wb, ws, ws_name);
+
+        /* TEST: simple formula */
+        ws['C1'].f = "A1+B1";
+        ws['C2'] = {t: 'n', f: "A1+B1"};
+
+        /* TEST: single-cell array formula */
+        /*
+         ws['D1'] = {t:'n', f:"SUM(A1:C1*A1:C1)", F:"D1:D1"};
+         */
+        xlsx.utils.sheet_set_array_formula(ws, 'D1:D1', "SUM(A1:C1*A1:C1)");
+
+        /* TEST: multi-cell array formula */
+        /*
+         ws['E1'] = {t:'n', f:"TRANSPOSE(A1:D1)", F:"E1:E4"};
+         ws['E2'] = {t:'n', F:"E1:E4"};
+         ws['E3'] = {t:'n', F:"E1:E4"};
+         ws['E4'] = {t:'n', F:"E1:E4"};
+         */
+        xlsx.utils.sheet_set_array_formula(ws, 'E1:E4', "TRANSPOSE(A1:D1)");
+        ws["!ref"] = "A1:E6";
+
+        /* TEST: column props */
+        ws['!cols'] = wscols;
+
+        /* TEST: row props */
+        ws['!rows'] = wsrows;
+
+        /* TEST: hyperlink note: Excel does not automatically style hyperlinks */
+        /*
+         ws['A3'].l = { Target: "http://sheetjs.com", Tooltip: "Visit us <SheetJS.com!>" };
+         */
+        xlsx.utils.cell_set_hyperlink(ws['A3'], "http://sheetjs.com", "Visit us <SheetJS.com!>");
+
+        /* TEST: built-in format */
+        /*
+         ws['B1'].z = "0%"; // Format Code 9
+         */
+        xlsx.utils.cell_set_number_format(ws['B1'], "0%");
+
+        /* TEST: custom format */
+        var custfmt = "\"This is \"\\ 0.0";
+        /*
+         ws['C2'].z = custfmt;
+         */
+        xlsx.utils.cell_set_number_format(ws['C2'], custfmt);
+
+        /* TEST: page margins */
+        ws['!margins'] = {left: 1.0, right: 1.0, top: 1.0, bottom: 1.0, header: 0.5, footer: 0.5};
+
+        console.log("JSON Data:");
+        console.log(xlsx.utils.sheet_to_json(ws, {header: 1}));
+
+        /* TEST: hidden sheets */
+        /*
+         wb.SheetNames.push("Hidden");
+         wb.Sheets["Hidden"] = xlsx.utils.aoa_to_sheet(["Hidden".split(""), [1,2,3]]);
+         wb.Workbook = {Sheets:[]};
+         wb.Workbook.Sheets[1] = {Hidden:1};
+         */
+        var data_2 = ["Hidden".split(""), [1, 2, 3]];
+        xlsx.utils.book_append_sheet(wb, xlsx.utils.aoa_to_sheet(data_2), "Hidden");
+        xlsx.utils.book_set_sheet_visibility(wb, "Hidden", xlsx.utils.consts.SHEET_HIDDEN);
+
+        /* TEST: properties */
+        wb.Props = {
+            Title: "SheetJS Test",
+            Subject: "Tests",
+            Author: "Devs at SheetJS",
+            Manager: "Sheet Manager",
+            Company: "SheetJS",
+            Category: "Experimentation",
+            Keywords: "Test",
+            Comments: "Nothing to say here",
+            LastAuthor: "Not SheetJS",
+            CreatedDate: new Date(2017, 1, 19)
+        };
+
+        /* TEST: comments */
+        /*
+         ws['A4'].c = [];
+         ws['A4'].c.push({a:"SheetJS",t:"I'm a little comment, short and stout!\n\nWell, Stout may be the wrong word"});
+         */
+        xlsx.utils.cell_add_comment(ws['A4'], "I'm a little comment, short and stout!\n\nWell, Stout may be the wrong word", "SheetJS");
+
+        /* TEST: sheet protection */
+        ws['!protect'] = {
+            password: "password",
+            /* enable formatting rows and columns */
+            formatRows: false,
+            formatColumns: false,
+            /* disable editing objects and scenarios */
+            objects: true,
+            scenarios: true
+        };
+
+        /* TEST: Workbook Properties */
+        if (!wb.Workbook) wb.Workbook = {Sheets: [], WBProps: {}};
+        if (!wb.Workbook.WBProps) wb.Workbook.WBProps = {};
+        wb.Workbook.WBProps.filterPrivacy = true;
+
+        console.log("Worksheet Model:");
+        console.log(ws);
+
+        var filenames = [
+            ['sheetjs.xlsx', {bookSST: true}],
+            ['sheetjs.xlsm'],
+            ['sheetjs.xlsb'],
+            ['sheetjs.xls', {bookType: 'biff2'}],
+            ['sheetjs.xml.xls', {bookType: 'xlml'}],
+            ['sheetjs.ods'],
+            ['sheetjs.fods'],
+            ['sheetjs.slk'],
+            ['sheetjs.csv'],
+            ['sheetjs.txt'],
+            ['sheetjs.prn'],
+            ['sheetjs.dif']
+        ];
+
+        let wbout = xlsx.write(wb, {
+            bookType: 'xlsx',
+            bookSST: true,
+            type: 'binary'
+        });
+        saveAs(new Blob([this.utils.s2ab(wbout)], {type: "application/octet-stream"}), this.selectedDataset.displayName + ".xlsx")
+
+        // filenames.forEach(function (r) {
+        //     let wbout = xlsx.write(wb, {
+        //         bookType: 'xlsx',
+        //         bookSST: true,
+        //         type: 'binary'
+        //     });
+        //     saveAs(new Blob([this.utils.s2ab(wbout)], {type: "application/octet-stream"}), this.selectedDataset.displayName + ".xlsx");
+        //
+        //     /* /!* write file *!/
+        //      xlsx.writeFile(wb, r[0], r[1]);
+        //      /!* test by reading back files *!/
+        //      xlsx.readFile(r[0]);*/
+        // });
     }
 
     onSubmit() {
@@ -957,6 +1158,7 @@ export default class HomeController {
         let per = year + '-' + (monthIndex + 1) <= 9 ? '0' + (monthIndex + 1) : (monthIndex + 1) + '-' + day <= 9 ? '0' + day : day;
         let data = [];
 
+
         _.forEach(this.cellsGot, (cell) => {
             if (cell.categoryOptionCombo && cell.dataElement && cell.cellValue) {
                 let ele = {
@@ -964,9 +1166,10 @@ export default class HomeController {
                     categoryOptionCombo: cell.categoryOptionCombo,
                     value: cell.cellValue.v
                 };
-                data.push(ele);
+                data = [...data, ele];
             }
         });
+
         if (data.length > 0) {
             let catOptions = this.selectedDatasetCategories.split(',');
             if (this.selectedDatasetCategories !== "") {

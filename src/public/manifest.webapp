@@ -1,6 +1,6 @@
 {
   "version":"1.0",
-  "name":"NRC Data Export-Import",
+  "name":"UgandaEMR Data Export-Import",
   "description":"Used to import excel data into DHIS2",
   "icons":{
     "16":"img/icons/hki-16.png",
@@ -9,7 +9,7 @@
   },
   "developer":{
     "url":"http://www.nrc.no",
-    "name":"HISP Uganda",
+    "name":"METS Uganda",
     "company":"",
     "email":""
     },
