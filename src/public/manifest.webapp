@@ -1,6 +1,6 @@
 {
   "version":"1.0",
-  "name":"UgandaEMR Data Export-Import",
+  "name":"UgandaEMR Data Import",
   "description":"Used to import excel data into DHIS2",
   "icons":{
     "16":"img/icons/hki-16.png",
@@ -8,7 +8,7 @@
     "128":"img/icons/hki-128.png"
   },
   "developer":{
-    "url":"http://www.nrc.no",
+    "url":"http://mets.or.ug",
     "name":"METS Uganda",
     "company":"",
     "email":""
